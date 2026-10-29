@@ -1,48 +1,52 @@
-import os
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Ambiente: "homolog" ou "production"
+    # ── Ambiente ──────────────────────────────────────────────────────────────
     env: str = "homolog"
 
-    # URLs base por ambiente
+    # ── URLs base ─────────────────────────────────────────────────────────────
     homolog_base_url: str = "https://openbanking-homol.finnet.com.br"
     production_base_url: str = "https://openbanking.finnet.com.br"
 
-    # Credenciais
-    finnet_username: str = "Petlove.homol"
-    finnet_password: str = ""  # definir no .env
+    # ── Autenticação da API (gerada pelo TI e configurada no Cloud Run) ────────
+    api_key: str  # obrigatório — sem default; ausência levanta erro na inicialização
 
-    # Secret para geração do x-token-validate (HMAC-SHA256 do body)
-    # Confirmar o valor exato com a Finnet — pode ser o token_callback do cadastro
-    finnet_token_secret: str = ""
+    # ── Credenciais Finnet — NUNCA colocar valores aqui; vêm do .env / Secret Manager
+    finnet_username: str
+    finnet_password: str
+    finnet_token_secret: str = ""  # confirmar com suporte Finnet
 
-    # Dados bancários — Bradesco (banco 237)
-    bank_identifier: int = 237
-    bank_branch: int = 1        # Agência 001
+    # ── Dados bancários ───────────────────────────────────────────────────────
+    bank_identifier: int
+    bank_branch: int
     bank_branch_identifier: str = "0"
-    bank_account: int = 117364011
+    bank_account: int
     bank_account_identifier: str = "0"
-    bank_agreement: str = "12345"
+    bank_agreement: str
 
-    # Dados da empresa pagadora (POC — dados fictícios fornecidos pela Finnet)
-    company_registered_number: str = "20274100000113"
-    company_name: str = "DOGHERO AGENCIA ONLINE DE SERVICOS"
-    company_type: int = 2  # 2 = CNPJ / Pessoa Jurídica
+    # ── Dados da empresa pagadora ─────────────────────────────────────────────
+    company_registered_number: str
+    company_name: str
+    company_type: int = 2
     company_address_zip_code: int = 0
     company_address: str = ""
     company_address_number: int = 0
     company_address_complement: str = ""
     company_address_neighborhood: str = ""
-    company_address_city: str = "São Paulo"
-    company_address_state: str = "SP"
+    company_address_city: str = ""
+    company_address_state: str = ""
+
+    # ── CORS — origens permitidas (separadas por vírgula no .env) ────────────
+    cors_origins: str = "https://butterfly.petlove.cloud"
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @property
     def base_url(self) -> str:
-        if self.env == "production":
-            return self.production_base_url
-        return self.homolog_base_url
+        return self.production_base_url if self.env == "production" else self.homolog_base_url
 
     @property
     def login_url(self) -> str:
